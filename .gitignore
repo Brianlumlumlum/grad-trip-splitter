@@ -12,7 +12,6 @@ dist
 dist-ssr
 *.local
 
-# Secrets — never commit (Vercel/Netlify use dashboard env vars instead)
 .env
 .env.*
 !.env.example
