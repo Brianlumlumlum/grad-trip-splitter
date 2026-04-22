@@ -23,6 +23,14 @@
   --shadow-sm: 0 8px 20px rgba(16, 24, 40, 0.08);
   --shadow: 0 16px 38px rgba(16, 24, 40, 0.12);
   --shadow-lg: 0 26px 64px rgba(16, 24, 40, 0.16);
+  --glass-blur: 14px;
+  --glass-sat: 125%;
+  --glass-sheen: linear-gradient(
+    150deg,
+    rgba(255, 255, 255, 0.58) 0%,
+    rgba(255, 255, 255, 0.2) 38%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
   --radius: 10px;
   --radius-lg: 16px;
   --radius-xl: 22px;
@@ -39,7 +47,7 @@
   --mono: ui-monospace, Consolas, monospace;
 
   font: 17px/150% var(--sans);
-  letter-spacing: 0.02em;
+  letter-spacing: 0.015em;
   color-scheme: light dark;
   color: var(--text);
   background: var(--bg);
@@ -78,6 +86,12 @@
     --shadow-sm: 0 10px 26px rgba(0, 0, 0, 0.34);
     --shadow: 0 20px 44px rgba(0, 0, 0, 0.45);
     --shadow-lg: 0 28px 72px rgba(0, 0, 0, 0.6);
+    --glass-sheen: linear-gradient(
+      150deg,
+      rgba(255, 255, 255, 0.2) 0%,
+      rgba(255, 255, 255, 0.08) 45%,
+      rgba(255, 255, 255, 0.02) 100%
+    );
 
     --pet-light: #451a1a;
     --pet-mid: #9f1239;
@@ -160,8 +174,8 @@ body {
   background: linear-gradient(165deg, color-mix(in srgb, var(--surface) 88%, transparent), var(--bg));
   border-inline: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
   box-shadow: var(--shadow-lg);
-  backdrop-filter: blur(14px) saturate(115%);
-  -webkit-backdrop-filter: blur(14px) saturate(115%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
 }
 
 @media (min-width: 520px) {
@@ -334,7 +348,7 @@ code {
 .top-bar-actions {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.55rem;
   flex-wrap: wrap;
   justify-content: flex-end;
 }
@@ -392,6 +406,9 @@ code {
 
 .main-content {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
 }
 
 /* ----- Auth ----- */
@@ -506,13 +523,13 @@ code {
 }
 
 .card {
-  background: linear-gradient(165deg, color-mix(in srgb, var(--surface) 86%, transparent), var(--surface-2));
+  background: var(--glass-sheen), linear-gradient(165deg, color-mix(in srgb, var(--surface) 86%, transparent), var(--surface-2));
   border: 1px solid color-mix(in srgb, var(--border-strong) 85%, transparent);
   border-radius: var(--radius-lg);
   padding: 1.1rem 1.2rem;
   box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(12px) saturate(120%);
-  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  backdrop-filter: blur(calc(var(--glass-blur) - 2px)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) - 2px)) saturate(var(--glass-sat));
   transition:
     border-color 0.2s ease,
     box-shadow 0.25s ease,
@@ -683,12 +700,13 @@ select.input:focus {
   font-weight: 700;
   font-size: 0.9rem;
   cursor: pointer;
-  border-radius: var(--radius);
-  padding: 0.6rem 1.1rem;
+  border-radius: calc(var(--radius) - 1px);
+  min-height: 2.5rem;
+  padding: 0.62rem 1.15rem;
   border: 1px solid color-mix(in srgb, var(--border-strong) 75%, transparent);
   background: linear-gradient(165deg, color-mix(in srgb, var(--surface) 90%, transparent), var(--surface-2));
   color: var(--text-h);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 8px 20px rgba(17, 24, 39, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 10px 24px rgba(17, 24, 39, 0.11);
   transition:
     transform 0.15s ease,
     box-shadow 0.2s ease,
@@ -699,7 +717,7 @@ select.input:focus {
 
 .btn:hover:not(:disabled) {
   border-color: var(--border-strong);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 12px 28px rgba(17, 24, 39, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58), 0 14px 30px rgba(17, 24, 39, 0.16);
   filter: brightness(1.03);
 }
 
@@ -722,14 +740,17 @@ select.input:focus {
   border-color: color-mix(in srgb, var(--accent) 45%, transparent);
   color: #fff;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.28),
-    0 14px 28px color-mix(in srgb, var(--accent-glow) 90%, transparent);
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    0 16px 32px color-mix(in srgb, var(--accent-glow) 94%, transparent);
 }
 
 .btn-primary:hover:not(:disabled) {
   filter: brightness(1.08);
   border-color: color-mix(in srgb, var(--accent) 52%, transparent);
   background: linear-gradient(155deg, color-mix(in srgb, var(--accent) 90%, #ffffff), var(--accent-hover));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    0 18px 36px color-mix(in srgb, var(--accent-glow) 100%, transparent);
 }
 
 .btn-secondary {
