@@ -43,7 +43,6 @@ export default function AuthScreen({ supabase, onSignedIn }) {
           <ul className="auth-benefits" aria-label="Key benefits">
             <li>Real-time shared expenses for your trip crew</li>
             <li>Automatic split math and simplified transfers</li>
-            <li>Beautiful itinerary view for Korea, Japan, and China</li>
           </ul>
         </section>
 
