@@ -33,61 +33,75 @@ export default function AuthScreen({ supabase, onSignedIn }) {
 
   return (
     <div className="auth-screen">
-      <div className="card auth-card">
-        <p className="auth-badge">Split expenses fairly</p>
-        <h1 className="app-title">Grad Trip Splitter</h1>
-        <p className="muted">Shared costs, clear balances, fewer transfers.</p>
+      <div className="auth-shell card">
+        <section className="auth-hero">
+          <p className="auth-badge">Built for group trips</p>
+          <h1 className="app-title">Plan boldly. Split fairly. Travel stress-free.</h1>
+          <p className="auth-subtext">
+            One clean place for friends to track expenses, see balances instantly, and settle up in minutes.
+          </p>
+          <ul className="auth-benefits" aria-label="Key benefits">
+            <li>Real-time shared expenses for your trip crew</li>
+            <li>Automatic split math and simplified transfers</li>
+            <li>Beautiful itinerary view for Korea, Japan, and China</li>
+          </ul>
+        </section>
 
-        <div className="tabs">
-          <button
-            type="button"
-            className={mode === 'signin' ? 'tab active' : 'tab'}
-            onClick={() => setMode('signin')}
-          >
-            Sign in
-          </button>
-          <button
-            type="button"
-            className={mode === 'signup' ? 'tab active' : 'tab'}
-            onClick={() => setMode('signup')}
-          >
-            Sign up
-          </button>
-        </div>
+        <section className="auth-card" aria-label="Sign in form">
+          <p className="auth-form-title">Welcome back</p>
+          <p className="muted small auth-form-subtitle">Sign in or create an account to start splitting.</p>
 
-        <form className="form" onSubmit={handleSubmit}>
-          <label className="label">
-            Email
-            <input
-              className="input"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </label>
-          <label className="label">
-            Password
-            <input
-              className="input"
-              type="password"
-              autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-            />
-          </label>
-          {message ? (
-            <p className={`form-message${signupInfo ? ' success' : ''}`} role="status">
-              {message}
-            </p>
-          ) : null}
-          <button className="btn btn-primary" type="submit" disabled={loading}>
-            {loading ? 'Please wait…' : mode === 'signup' ? 'Create account' : 'Sign in'}
-          </button>
-        </form>
+          <div className="tabs">
+            <button
+              type="button"
+              className={mode === 'signin' ? 'tab active' : 'tab'}
+              onClick={() => setMode('signin')}
+            >
+              Sign in
+            </button>
+            <button
+              type="button"
+              className={mode === 'signup' ? 'tab active' : 'tab'}
+              onClick={() => setMode('signup')}
+            >
+              Sign up
+            </button>
+          </div>
+
+          <form className="form" onSubmit={handleSubmit}>
+            <label className="label">
+              Email
+              <input
+                className="input"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </label>
+            <label className="label">
+              Password
+              <input
+                className="input"
+                type="password"
+                autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+              />
+            </label>
+            {message ? (
+              <p className={`form-message${signupInfo ? ' success' : ''}`} role="status">
+                {message}
+              </p>
+            ) : null}
+            <button className="btn btn-primary" type="submit" disabled={loading}>
+              {loading ? 'Please wait…' : mode === 'signup' ? 'Create account' : 'Sign in'}
+            </button>
+          </form>
+        </section>
       </div>
     </div>
   )
