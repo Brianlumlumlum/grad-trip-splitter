@@ -3,6 +3,7 @@ import Layout from './Layout.jsx'
 import ExpenseList from './ExpenseList.jsx'
 import ExpenseForm from './ExpenseForm.jsx'
 import { fetchProfilesMap } from '../utils/userDisplay.js'
+import { useToast } from '../context/ToastContext.jsx'
 
 export default function TripDetail({
   supabase,
@@ -13,6 +14,7 @@ export default function TripDetail({
   onBalances,
   onShowItinerary,
 }) {
+  const { showToast } = useToast()
   const [members, setMembers] = useState([])
   const [expenses, setExpenses] = useState([])
   const [profilesById, setProfilesById] = useState({})
@@ -83,6 +85,93 @@ export default function TripDetail({
     [expenses],
   )
 
+  const exportRows = useMemo(
+    () =>
+      expenses.map((exp) => {
+        const participants = exp.expense_participants || []
+        const participantsPretty = participants
+          .map((p) => {
+            const name = profilesById[p.user_id] || p.user_id || ''
+            return `${name} (${p.share_amount})`
+          })
+          .join(' | ')
+        return {
+          trip_id: exp.trip_id || tripId,
+          trip_name: tripName || '',
+          expense_id: exp.id || '',
+          title: exp.title || '',
+          amount: exp.amount ?? '',
+          paid_by_id: exp.paid_by || '',
+          paid_by_name: profilesById[exp.paid_by] || exp.paid_by || '',
+          created_by_id: exp.created_by || '',
+          created_by_name: profilesById[exp.created_by] || exp.created_by || '',
+          created_at_iso: exp.created_at || '',
+          participant_count: participants.length,
+          participant_shares: participantsPretty,
+        }
+      }),
+    [expenses, profilesById, tripId, tripName],
+  )
+
+  function csvCell(value) {
+    const s = String(value ?? '')
+    const escaped = s.replaceAll('"', '""')
+    return `"${escaped}"`
+  }
+
+  function downloadBlob(filename, content, mimeType) {
+    const blob = new Blob([content], { type: mimeType })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }
+
+  async function exportExpenses() {
+    if (!exportRows.length) {
+      showToast('No expenses to export', { type: 'error' })
+      return
+    }
+    const stamp = new Date().toISOString().slice(0, 19).replaceAll(':', '-')
+    const base = (tripName || 'trip').toLowerCase().replace(/[^a-z0-9]+/g, '-')
+    const csvHeaders = Object.keys(exportRows[0])
+    const csvLines = [
+      csvHeaders.map(csvCell).join(','),
+      ...exportRows.map((row) => csvHeaders.map((h) => csvCell(row[h])).join(',')),
+    ]
+    const csv = csvLines.join('\n')
+    const csvFilename = `${base}-expenses-${stamp}.csv`
+
+    const canShareFiles =
+      typeof navigator !== 'undefined' &&
+      typeof navigator.share === 'function' &&
+      typeof navigator.canShare === 'function'
+
+    if (canShareFiles) {
+      const file = new File([csv], csvFilename, { type: 'text/csv' })
+      if (navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            title: `${tripName || 'Trip'} expenses export`,
+            text: 'Expense export CSV',
+            files: [file],
+          })
+          showToast('Export shared')
+          return
+        } catch {
+          // fallback to local file download if user cancels or share fails
+        }
+      }
+    }
+
+    downloadBlob(csvFilename, csv, 'text/csv;charset=utf-8')
+    showToast('Expense export downloaded')
+  }
+
   return (
     <Layout
       title={tripName || 'Trip'}
@@ -92,6 +181,9 @@ export default function TripDetail({
         <div className="top-bar-actions">
           <button type="button" className="btn btn-ghost" onClick={onShowItinerary}>
             Itinerary
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={exportExpenses}>
+            Export
           </button>
           <button type="button" className="btn btn-secondary" onClick={() => onBalances(tripId, tripName)}>
             Balances

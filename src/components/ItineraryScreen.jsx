@@ -24,6 +24,7 @@ const AIRBNB_COLS = [
   'Check in time',
   'Check out time',
   'Address',
+  'Phone number',
 ]
 
 function FlightTable({ rows }) {
@@ -52,22 +53,24 @@ function FlightTable({ rows }) {
 }
 
 function AirbnbTable({ rows }) {
-  if (!rows.length) return null
+  const hasPhone = rows.some((r) => r[6])
+  const cols = hasPhone ? AIRBNB_COLS : AIRBNB_COLS.slice(0, -1)
+  const safeRows = rows.length ? rows : [Array.from({ length: cols.length }, () => '')]
   return (
     <div className="itinerary-table-wrap">
       <table className="itinerary-table">
         <thead>
           <tr>
-            {AIRBNB_COLS.map((c) => (
+            {cols.map((c) => (
               <th key={c}>{c}</th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {rows.map((r, i) => (
+          {safeRows.map((r, i) => (
             <tr key={i}>
-              {r.map((cell, j) => (
-                <td key={j}>{cell}</td>
+              {cols.map((_, j) => (
+                <td key={j}>{r[j] || ''}</td>
               ))}
             </tr>
           ))}
@@ -142,12 +145,10 @@ export default function ItineraryScreen({ onBack }) {
               <FlightTable rows={block.flights} />
             </section>
 
-            {block.airbnb.length > 0 ? (
-              <section className="itinerary-section">
-                <h3 className="itinerary-section-head">Airbnb information</h3>
-                <AirbnbTable rows={block.airbnb} />
-              </section>
-            ) : null}
+            <section className="itinerary-section">
+              <h3 className="itinerary-section-head">Airbnb / hotel information</h3>
+              <AirbnbTable rows={block.airbnb} />
+            </section>
 
             <section className="itinerary-section">
               <h3 className="itinerary-section-head">Travel overview</h3>
