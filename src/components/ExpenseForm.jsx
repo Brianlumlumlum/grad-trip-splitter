@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { equalShareAmounts, formatMoney, roundMoney } from '../utils/money.js'
-import { fetchCadRate } from '../utils/exchangeRates.js'
+import { getCadPerUnit } from '../utils/exchangeRates.js'
 import { userLabel } from '../utils/userDisplay.js'
 import { useToast } from '../context/ToastContext.jsx'
 import { usePet } from '../context/PetContext.jsx'
@@ -28,8 +28,6 @@ export default function ExpenseForm({
   const [amount, setAmount] = useState('')
   const [paidCurrency, setPaidCurrency] = useState('CAD')
   const [convertToCad, setConvertToCad] = useState(true)
-  const [previewRate, setPreviewRate] = useState(null)
-  const [previewLoading, setPreviewLoading] = useState(false)
   const [paidBy, setPaidBy] = useState(() => session?.user?.id || '')
   const [selected, setSelected] = useState(() => new Set())
   const [saving, setSaving] = useState(false)
@@ -54,28 +52,9 @@ export default function ExpenseForm({
     if (memberIds.length) setSelected(new Set(memberIds))
   }, [memberKey])
 
-  useEffect(() => {
-    if (paidCurrency === 'CAD' || !convertToCad) {
-      setPreviewRate(null)
-      setPreviewLoading(false)
-      return
-    }
-    let cancelled = false
-    setPreviewLoading(true)
-    setPreviewRate(null)
-    fetchCadRate(paidCurrency)
-      .then((r) => {
-        if (!cancelled) setPreviewRate(r)
-      })
-      .catch(() => {
-        if (!cancelled) setPreviewRate(null)
-      })
-      .finally(() => {
-        if (!cancelled) setPreviewLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
+  const fixedCadRate = useMemo(() => {
+    if (paidCurrency === 'CAD' || !convertToCad) return null
+    return getCadPerUnit(paidCurrency)
   }, [paidCurrency, convertToCad])
 
   function toggle(id) {
@@ -117,19 +96,7 @@ export default function ExpenseForm({
 
     let amountCad = roundMoney(original)
     if (paidCurrency !== 'CAD') {
-      setSaving(true)
-      let rate
-      try {
-        rate = await fetchCadRate(paidCurrency)
-      } catch (err) {
-        setSaving(false)
-        const msg = err instanceof Error ? err.message : 'Could not fetch exchange rate'
-        setError(`${msg}. Check your connection and try again.`)
-        showToast(msg, { type: 'error' })
-        return
-      }
-      amountCad = roundMoney(original * rate)
-      setSaving(false)
+      amountCad = roundMoney(original * getCadPerUnit(paidCurrency))
     }
 
     setSaving(true)
@@ -270,16 +237,20 @@ export default function ExpenseForm({
             checked={convertToCad}
             onChange={(e) => setConvertToCad(e.target.checked)}
           />
-          Convert to CAD using today’s rate (splits and balances use CAD)
+          Convert to CAD using fixed rates (splits and balances use CAD)
         </label>
       ) : null}
-      {paidCurrency !== 'CAD' && convertToCad ? (
+      {paidCurrency !== 'CAD' && convertToCad && fixedCadRate != null ? (
         <p className="muted small" style={{ marginTop: '0.35rem' }}>
-          {previewLoading
-            ? 'Fetching rate…'
-            : previewRate != null && !Number.isNaN(parseFloat(amount)) && parseFloat(amount) > 0
-              ? `≈ ${formatMoney(roundMoney(parseFloat(amount) * previewRate))} CAD for this expense`
-              : 'Enter an amount to see the CAD estimate.'}
+          {(() => {
+            const amt = parseFloat(amount)
+            const rateStr =
+              fixedCadRate < 0.01 ? fixedCadRate.toFixed(6) : fixedCadRate.toFixed(4)
+            if (!Number.isNaN(amt) && amt > 0) {
+              return `≈ ${formatMoney(roundMoney(amt * fixedCadRate))} for this expense · 1 ${paidCurrency} = ${rateStr} CAD`
+            }
+            return `1 ${paidCurrency} = ${rateStr} CAD (edit in code if needed)`
+          })()}
         </p>
       ) : null}
 
