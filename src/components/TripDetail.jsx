@@ -4,6 +4,11 @@ import ExpenseList from './ExpenseList.jsx'
 import ExpenseForm from './ExpenseForm.jsx'
 import { fetchProfilesMap } from '../utils/userDisplay.js'
 import { useToast } from '../context/ToastContext.jsx'
+import {
+  EXPENSE_SELECT_LEGACY,
+  EXPENSE_SELECT_WITH_CURRENCY,
+  isLegacyExpenseSchemaError,
+} from '../utils/expenseSchema.js'
 
 export default function TripDetail({
   supabase,
@@ -20,39 +25,52 @@ export default function TripDetail({
   const [profilesById, setProfilesById] = useState({})
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [expenseCurrencySchema, setExpenseCurrencySchema] = useState(true)
 
   const load = useCallback(async () => {
     setLoading(true)
     setError('')
 
-    const [{ data: memData, error: memErr }, { data: expData, error: expErr }] = await Promise.all([
-      supabase.from('trip_members').select('user_id').eq('trip_id', tripId),
-      supabase
-        .from('expenses')
-        .select(
-          'id, trip_id, paid_by, created_by, title, amount, original_amount, original_currency, created_at, expense_participants ( user_id, share_amount )',
-        )
-        .eq('trip_id', tripId)
-        .order('created_at', { ascending: false }),
-    ])
+    const { data: memData, error: memErr } = await supabase
+      .from('trip_members')
+      .select('user_id')
+      .eq('trip_id', tripId)
 
     if (memErr) {
       setError(memErr.message)
       setLoading(false)
       return
     }
-    if (expErr) {
-      setError(expErr.message)
+
+    let expRes = await supabase
+      .from('expenses')
+      .select(EXPENSE_SELECT_WITH_CURRENCY)
+      .eq('trip_id', tripId)
+      .order('created_at', { ascending: false })
+
+    if (expRes.error && isLegacyExpenseSchemaError(expRes.error)) {
+      setExpenseCurrencySchema(false)
+      expRes = await supabase
+        .from('expenses')
+        .select(EXPENSE_SELECT_LEGACY)
+        .eq('trip_id', tripId)
+        .order('created_at', { ascending: false })
+    } else if (!expRes.error) {
+      setExpenseCurrencySchema(true)
+    }
+
+    if (expRes.error) {
+      setError(expRes.error.message)
       setLoading(false)
       return
     }
 
     setMembers(memData || [])
-    setExpenses(expData || [])
+    setExpenses(expRes.data || [])
 
     const ids = new Set()
     for (const m of memData || []) ids.add(m.user_id)
-    for (const exp of expData || []) {
+    for (const exp of expRes.data || []) {
       ids.add(exp.paid_by)
       if (exp.created_by) ids.add(exp.created_by)
       for (const p of exp.expense_participants || []) ids.add(p.user_id)
@@ -194,6 +212,13 @@ export default function TripDetail({
       }
     >
       {error ? <p className="error-banner">{error}</p> : null}
+      {!error && !loading && !expenseCurrencySchema ? (
+        <p className="info-banner" role="status">
+          Your database has not been updated for multi-currency yet. The app is using a compatible mode: converted
+          amounts still save as CAD. To store paid currency per expense and show it in the list, run{' '}
+          <code>supabase/expense_currency.sql</code> in the Supabase SQL Editor, then refresh this page.
+        </p>
+      ) : null}
       {loading ? (
         <div className="section" aria-busy="true" aria-label="Loading trip">
           <div className="section-head">
@@ -236,6 +261,7 @@ export default function TripDetail({
               session={session}
               supabase={supabase}
               profilesById={profilesById}
+              expenseCurrencySchema={expenseCurrencySchema}
               onSaved={load}
             />
           </section>

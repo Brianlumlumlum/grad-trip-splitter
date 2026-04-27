@@ -4,6 +4,7 @@ import { fetchCadRate } from '../utils/exchangeRates.js'
 import { userLabel } from '../utils/userDisplay.js'
 import { useToast } from '../context/ToastContext.jsx'
 import { usePet } from '../context/PetContext.jsx'
+import { isLegacyExpenseSchemaError } from '../utils/expenseSchema.js'
 
 const PAYMENT_CURRENCIES = [
   { value: 'CAD', label: 'CAD — Canadian dollar' },
@@ -12,7 +13,15 @@ const PAYMENT_CURRENCIES = [
   { value: 'KRW', label: 'KRW — Korean won' },
 ]
 
-export default function ExpenseForm({ tripId, members, session, supabase, profilesById = {}, onSaved }) {
+export default function ExpenseForm({
+  tripId,
+  members,
+  session,
+  supabase,
+  profilesById = {},
+  expenseCurrencySchema = true,
+  onSaved,
+}) {
   const { showToast } = useToast()
   const { registerExpenseCreated } = usePet()
   const [title, setTitle] = useState('')
@@ -126,19 +135,39 @@ export default function ExpenseForm({ tripId, members, session, supabase, profil
     setSaving(true)
     const shares = equalShareAmounts(amountCad, participantIds.length)
 
-    const { data: expRow, error: expErr } = await supabase
-      .from('expenses')
-      .insert({
-        trip_id: tripId,
-        paid_by: payer,
-        created_by: uid,
-        title: title.trim(),
-        amount: amountCad,
-        original_amount: paidCurrency === 'CAD' ? amountCad : original,
-        original_currency: paidCurrency,
-      })
-      .select('id')
-      .single()
+    const rowFull = {
+      trip_id: tripId,
+      paid_by: payer,
+      created_by: uid,
+      title: title.trim(),
+      amount: amountCad,
+      original_amount: paidCurrency === 'CAD' ? amountCad : original,
+      original_currency: paidCurrency,
+    }
+    const rowLegacy = {
+      trip_id: tripId,
+      paid_by: payer,
+      created_by: uid,
+      title: title.trim(),
+      amount: amountCad,
+    }
+
+    let expRow
+    let expErr
+    if (expenseCurrencySchema) {
+      const ins = await supabase.from('expenses').insert(rowFull).select('id').single()
+      expRow = ins.data
+      expErr = ins.error
+      if (expErr && isLegacyExpenseSchemaError(expErr)) {
+        const ins2 = await supabase.from('expenses').insert(rowLegacy).select('id').single()
+        expRow = ins2.data
+        expErr = ins2.error
+      }
+    } else {
+      const ins = await supabase.from('expenses').insert(rowLegacy).select('id').single()
+      expRow = ins.data
+      expErr = ins.error
+    }
 
     if (expErr) {
       setError(expErr.message)
