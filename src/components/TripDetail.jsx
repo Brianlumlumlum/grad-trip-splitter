@@ -30,7 +30,7 @@ export default function TripDetail({
       supabase
         .from('expenses')
         .select(
-          'id, trip_id, paid_by, created_by, title, amount, created_at, expense_participants ( user_id, share_amount )',
+          'id, trip_id, paid_by, created_by, title, amount, original_amount, original_currency, created_at, expense_participants ( user_id, share_amount )',
         )
         .eq('trip_id', tripId)
         .order('created_at', { ascending: false }),
@@ -101,6 +101,8 @@ export default function TripDetail({
           expense_id: exp.id || '',
           title: exp.title || '',
           amount: exp.amount ?? '',
+          original_amount: exp.original_amount ?? '',
+          original_currency: exp.original_currency ?? '',
           paid_by_id: exp.paid_by || '',
           paid_by_name: profilesById[exp.paid_by] || exp.paid_by || '',
           created_by_id: exp.created_by || '',

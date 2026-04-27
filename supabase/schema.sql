@@ -29,6 +29,8 @@ CREATE TABLE IF NOT EXISTS public.expenses (
   created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
   title text NOT NULL,
   amount numeric(12, 2) NOT NULL CHECK (amount > 0),
+  original_amount numeric(14, 4) NOT NULL,
+  original_currency text NOT NULL DEFAULT 'CAD' CHECK (original_currency IN ('CAD', 'JPY', 'CNY', 'KRW')),
   created_at timestamptz NOT NULL DEFAULT now()
 );
 

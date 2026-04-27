@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { formatMoney, roundMoney } from '../utils/money.js'
+import { formatMoney, formatMoneyCurrency, roundMoney } from '../utils/money.js'
 import { userLabel } from '../utils/userDisplay.js'
 import { useToast } from '../context/ToastContext.jsx'
 
@@ -30,9 +30,11 @@ export default function ExpenseList({
 
   async function deleteExpense(exp) {
     if (!supabase || exp.created_by !== uid) return
-    const ok = window.confirm(
-      `Delete “${exp.title}” (${formatMoney(exp.amount)})? This updates everyone’s balances.`,
-    )
+    const orig = exp.original_currency && exp.original_currency !== 'CAD'
+    const detail = orig
+      ? `${formatMoney(exp.amount)} — paid ${formatMoneyCurrency(exp.original_currency, exp.original_amount)}`
+      : formatMoney(exp.amount)
+    const ok = window.confirm(`Delete “${exp.title}” (${detail})? This updates everyone’s balances.`)
     if (!ok) return
     setDeletingId(exp.id)
     const { error } = await supabase.from('expenses').delete().eq('id', exp.id)
@@ -88,9 +90,14 @@ export default function ExpenseList({
             </div>
             <div className="expense-amount-block">
               <div className="expense-amount-total">
-                <span className="muted small">Total </span>
+                <span className="muted small">Total (CAD) </span>
                 <span className="expense-amount">{formatMoney(exp.amount)}</span>
               </div>
+              {exp.original_currency && exp.original_currency !== 'CAD' ? (
+                <div className="muted small expense-share-line">
+                  Paid {formatMoneyCurrency(exp.original_currency, exp.original_amount)}
+                </div>
+              ) : null}
               {shareLine ? <div className="muted small expense-share-line">{shareLine}</div> : null}
             </div>
           </li>

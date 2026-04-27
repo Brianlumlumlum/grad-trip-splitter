@@ -3,9 +3,28 @@ export function roundMoney(n) {
   return Math.round(Number(n) * 100) / 100
 }
 
+const ZERO_DECIMAL = new Set(['JPY', 'KRW'])
+
+/** Format an amount in a given ISO currency (ledger uses CAD). */
+export function formatMoneyCurrency(currency, n) {
+  const code = currency || 'CAD'
+  const v = Number(n)
+  if (ZERO_DECIMAL.has(code)) {
+    const whole = Math.round(v)
+    return whole.toLocaleString(undefined, {
+      style: 'currency',
+      currency: code,
+      maximumFractionDigits: 0,
+      minimumFractionDigits: 0,
+    })
+  }
+  const rounded = roundMoney(v)
+  return rounded.toLocaleString(undefined, { style: 'currency', currency: code })
+}
+
+/** Format CAD (balances and split totals). */
 export function formatMoney(n) {
-  const v = roundMoney(n)
-  return v.toLocaleString(undefined, { style: 'currency', currency: 'USD' })
+  return formatMoneyCurrency('CAD', n)
 }
 
 /**
