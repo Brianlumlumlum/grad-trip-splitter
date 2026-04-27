@@ -224,7 +224,7 @@ export default function ExpenseForm({
           type="number"
           inputMode="decimal"
           min="0.01"
-          step={paidCurrency === 'JPY' || paidCurrency === 'KRW' ? '1' : '0.01'}
+          step="any"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           required
